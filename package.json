@@ -1,0 +1,26 @@
+{
+  "name": "venturex",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @venturex/web",
+    "build": "npm run build -w @venturex/web",
+    "typecheck": "npm run typecheck -w @venturex/web",
+    "test": "npm run test:e2e",
+    "test:e2e": "playwright test",
+    "lint": "eslint apps/web packages/shared",
+    "start": "npm run start -w @venturex/web",
+    "format": "prettier --write apps/web packages/shared README.md"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^22.18.0",
+    "@playwright/test": "^1.56.1",
+    "eslint": "^9.39.0",
+    "typescript-eslint": "^8.46.0",
+    "prettier": "^3.6.2"
+  }
+}

@@ -1,0 +1,245 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+enum Role {
+  INVESTOR
+  FOUNDER
+  PROJECT_OWNER
+  ADMIN
+}
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  name String
+  passwordHash String
+  role Role
+  createdAt DateTime @default(now())
+  sessions Session[]
+  memberships OrganizationMembership[]
+  investorProfile InvestorProfile?
+  startups Startup[]
+  projects Project[]
+  watchlists Watchlist[]
+  holdings PortfolioHolding[]
+  messages Message[]
+  notifications Notification[]
+  documents Document[]
+  grants DocumentAccessGrant[]
+  verifications VerificationRequest[]
+  audits AuditLog[]
+  resets PasswordReset[]
+  conversations ConversationMember[]
+  meetings Meeting[]
+  deals Deal[]
+}
+model Session {
+  id String @id
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  @@index([userId])
+}
+model PasswordReset {
+  id String @id
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+}
+model Organization {
+  id String @id @default(cuid())
+  name String
+  createdAt DateTime @default(now())
+  memberships OrganizationMembership[]
+}
+model OrganizationMembership {
+  id String @id @default(cuid())
+  userId String
+  organizationId String
+  user User @relation(fields: [userId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+  role String @default("MEMBER")
+  @@unique([userId, organizationId])
+}
+model InvestorProfile {
+  id String @id @default(cuid())
+  userId String @unique
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferences Json
+  updatedAt DateTime @updatedAt
+}
+model Startup {
+  id String @id @default(cuid())
+  slug String @unique
+  name String
+  sector String
+  country String
+  city String
+  stage String
+  description String
+  target Int
+  raised Int @default(0)
+  instrument String
+  growth Int @default(0)
+  color String @default("#4169ff")
+  symbol String @default("✳")
+  isDemo Boolean @default(false)
+  published Boolean @default(false)
+  ownerId String
+  owner User @relation(fields: [ownerId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  campaigns FundingCampaign[]
+  opportunities InvestmentOpportunity[]
+  watchlists Watchlist[]
+  deals Deal[]
+  holdings PortfolioHolding[]
+  documents Document[]
+  @@index([sector, stage, country])
+}
+model Project {
+  id String @id @default(cuid())
+  ownerId String
+  owner User @relation(fields: [ownerId], references: [id])
+  name String
+  description String
+  fundingRequest Int
+  milestones Json
+  createdAt DateTime @default(now())
+  @@index([ownerId])
+}
+model FundingCampaign {
+  id String @id @default(cuid())
+  startupId String
+  startup Startup @relation(fields: [startupId], references: [id])
+  title String
+  target Int
+  status String @default("DRAFT")
+  createdAt DateTime @default(now())
+}
+model InvestmentOpportunity {
+  id String @id @default(cuid())
+  startupId String
+  startup Startup @relation(fields: [startupId], references: [id])
+  instrument String
+  minimum Int
+  createdAt DateTime @default(now())
+}
+model Watchlist {
+  id String @id @default(cuid())
+  userId String
+  startupId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startup Startup @relation(fields: [startupId], references: [id])
+  createdAt DateTime @default(now())
+  @@unique([userId, startupId])
+}
+model Deal {
+  id String @id @default(cuid())
+  investorId String
+  investor User @relation(fields: [investorId], references: [id])
+  startupId String
+  startup Startup @relation(fields: [startupId], references: [id])
+  stage String @default("INTEREST")
+  notes String @default("")
+  checklist Json @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([investorId, startupId])
+}
+model PortfolioHolding {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  startupId String
+  startup Startup @relation(fields: [startupId], references: [id])
+  invested Int
+  value Int
+  simulated Boolean @default(true)
+  createdAt DateTime @default(now())
+}
+model Conversation {
+  id String @id @default(cuid())
+  members ConversationMember[]
+  messages Message[]
+  createdAt DateTime @default(now())
+}
+model ConversationMember {
+  id String @id @default(cuid())
+  conversationId String
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  @@unique([conversationId, userId])
+}
+model Message {
+  id String @id @default(cuid())
+  conversationId String
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  senderId String
+  sender User @relation(fields: [senderId], references: [id])
+  body String
+  createdAt DateTime @default(now())
+  @@index([conversationId, createdAt])
+}
+model Meeting {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  title String
+  startsAt DateTime
+  status String @default("REQUESTED")
+  createdAt DateTime @default(now())
+  @@index([userId, startsAt])
+}
+model Notification {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body String
+  read Boolean @default(false)
+  createdAt DateTime @default(now())
+  @@index([userId, read])
+}
+model Document {
+  id String @id @default(cuid())
+  ownerId String
+  owner User @relation(fields: [ownerId], references: [id])
+  startupId String?
+  startup Startup? @relation(fields: [startupId], references: [id])
+  name String
+  storageKey String @unique
+  mimeType String
+  size Int
+  grants DocumentAccessGrant[]
+  createdAt DateTime @default(now())
+}
+model DocumentAccessGrant {
+  id String @id @default(cuid())
+  documentId String
+  document Document @relation(fields: [documentId], references: [id])
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  status String @default("REQUESTED")
+  @@unique([documentId, userId])
+}
+model VerificationRequest {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  status String @default("PENDING")
+  notes String @default("")
+  createdAt DateTime @default(now())
+}
+model AuditLog {
+  id String @id @default(cuid())
+  userId String?
+  user User? @relation(fields: [userId], references: [id])
+  action String
+  entityId String?
+  createdAt DateTime @default(now())
+  @@index([createdAt])
+}
